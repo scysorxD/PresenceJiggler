@@ -10,10 +10,11 @@ internal sealed class SettingsForm : Form
 
     public AppSettings Result { get; private set; }
 
-    public SettingsForm(AppSettings current)
+    public SettingsForm(AppSettings current, Icon icon)
     {
         Result = current.Clone();
         Text = "Presence Jiggler - Configuración";
+        Icon = icon;
         Width = 435;
         Height = 275;
         FormBorderStyle = FormBorderStyle.FixedDialog;

@@ -12,7 +12,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private long _lastAttemptAt;
     private bool _settingsOpen;
 
-    public TrayApplicationContext()
+    public TrayApplicationContext(Icon icon)
     {
         _settings = SettingsStore.Load();
         var menu = new ContextMenuStrip();
@@ -28,7 +28,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
         _notifyIcon = new NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = icon,
             Visible = true,
             ContextMenuStrip = menu
         };
@@ -82,7 +82,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _settingsOpen = true;
         try
         {
-            using var form = new SettingsForm(_settings);
+            using var form = new SettingsForm(_settings, _notifyIcon.Icon!);
             if (form.ShowDialog() != DialogResult.OK)
                 return;
 

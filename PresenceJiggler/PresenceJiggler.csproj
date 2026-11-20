@@ -9,5 +9,9 @@
     <AssemblyName>PresenceJiggler</AssemblyName>
     <RootNamespace>PresenceJiggler</RootNamespace>
     <Version>1.0.0</Version>
+    <ApplicationIcon>AppIcon.ico</ApplicationIcon>
   </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="AppIcon.ico" LogicalName="PresenceJiggler.AppIcon.ico" />
+  </ItemGroup>
 </Project>

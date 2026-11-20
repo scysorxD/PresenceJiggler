@@ -1,3 +1,5 @@
+using System.Drawing;
+
 namespace PresenceJiggler;
 
 internal static class Program
@@ -16,6 +18,10 @@ internal static class Program
         }
 
         ApplicationConfiguration.Initialize();
-        Application.Run(new TrayApplicationContext());
+        using var iconStream = typeof(Program).Assembly.GetManifestResourceStream("PresenceJiggler.AppIcon.ico")
+            ?? throw new InvalidOperationException("No se encontró el ícono de Presence Jiggler.");
+        using var icon = new Icon(iconStream, SystemInformation.SmallIconSize);
+        using var context = new TrayApplicationContext(icon);
+        Application.Run(context);
     }
 }
