@@ -42,7 +42,9 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     private void OnTick(object? sender, EventArgs e)
     {
-        if (!_settings.Enabled || _settingsOpen)
+        bool active = _settings.IsActiveAt(TimeOnly.FromDateTime(DateTime.Now));
+        RefreshStatus(active);
+        if (!active || _settingsOpen)
             return;
 
         if (!WindowsInput.TryGetIdleDuration(out var idle) ||
@@ -106,9 +108,17 @@ internal sealed class TrayApplicationContext : ApplicationContext
     {
         _toggleItem.Text = _settings.Enabled ? "Desactivar" : "Activar";
         _toggleItem.Checked = _settings.Enabled;
-        _notifyIcon.Text = _settings.Enabled
+        RefreshStatus(_settings.IsActiveAt(TimeOnly.FromDateTime(DateTime.Now)));
+    }
+
+    private void RefreshStatus(bool active)
+    {
+        string status = active
             ? $"Presence Jiggler - Activo ({_settings.IdleMinutes} min)"
-            : "Presence Jiggler - Desactivado";
+            : _settings.Enabled ? "Presence Jiggler - Fuera de horario" : "Presence Jiggler - Desactivado";
+
+        if (_notifyIcon.Text != status)
+            _notifyIcon.Text = status;
     }
 
     private static void ShowError(string message, Exception error) =>

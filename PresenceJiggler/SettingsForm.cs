@@ -16,7 +16,7 @@ internal sealed class SettingsForm : Form
         Text = "Presence Jiggler - Configuración";
         Icon = icon;
         Width = 435;
-        Height = 275;
+        Height = 355;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterScreen;
         MaximizeBox = false;
@@ -29,12 +29,14 @@ internal sealed class SettingsForm : Form
             Dock = DockStyle.Fill,
             Padding = new Padding(18, 15, 18, 15),
             ColumnCount = 2,
-            RowCount = 5
+            RowCount = 7
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 70));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 43));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
@@ -77,6 +79,32 @@ internal sealed class SettingsForm : Form
         layout.Controls.Add(_startup, 0, 2);
         layout.SetColumnSpan(_startup, 2);
 
+        var allDay = new CheckBox
+        {
+            Text = "Todo el día",
+            AutoSize = true,
+            Checked = current.AllDay,
+            Anchor = AnchorStyles.Left
+        };
+        layout.Controls.Add(allDay, 0, 3);
+        layout.SetColumnSpan(allDay, 2);
+
+        var activeHours = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            Enabled = !current.AllDay,
+            WrapContents = false
+        };
+        var activeStart = CreateTimePicker(current.ActiveStart);
+        var activeEnd = CreateTimePicker(current.ActiveEnd);
+        activeHours.Controls.Add(new Label { Text = "Desde", AutoSize = true, Margin = new Padding(0, 7, 6, 0) });
+        activeHours.Controls.Add(activeStart);
+        activeHours.Controls.Add(new Label { Text = "Hasta", AutoSize = true, Margin = new Padding(12, 7, 6, 0) });
+        activeHours.Controls.Add(activeEnd);
+        layout.Controls.Add(activeHours, 0, 4);
+        layout.SetColumnSpan(activeHours, 2);
+        allDay.CheckedChanged += (_, _) => activeHours.Enabled = !allDay.Checked;
+
         var note = new Label
         {
             Text = "Se ejecuta en segundo plano, solo en tu sesión de Windows. " +
@@ -86,7 +114,7 @@ internal sealed class SettingsForm : Form
             ForeColor = SystemColors.GrayText,
             Anchor = AnchorStyles.Top | AnchorStyles.Left
         };
-        layout.Controls.Add(note, 0, 3);
+        layout.Controls.Add(note, 0, 5);
         layout.SetColumnSpan(note, 2);
 
         var buttons = new FlowLayoutPanel
@@ -99,19 +127,42 @@ internal sealed class SettingsForm : Form
         var cancel = new Button { Text = "Cancelar", DialogResult = DialogResult.Cancel, Width = 95 };
         buttons.Controls.Add(save);
         buttons.Controls.Add(cancel);
-        layout.Controls.Add(buttons, 0, 4);
+        layout.Controls.Add(buttons, 0, 6);
         layout.SetColumnSpan(buttons, 2);
         AcceptButton = save;
         CancelButton = cancel;
 
         save.Click += (_, _) =>
         {
+            var start = new TimeOnly(activeStart.Value.Hour, activeStart.Value.Minute);
+            var end = new TimeOnly(activeEnd.Value.Hour, activeEnd.Value.Minute);
+            if (!allDay.Checked && start == end)
+            {
+                DialogResult = DialogResult.None;
+                MessageBox.Show(this, "Elegí horas distintas para el inicio y el fin del horario activo.",
+                    Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                activeEnd.Focus();
+                return;
+            }
+
             Result = new AppSettings
             {
                 Enabled = _enabled.Checked,
                 IdleMinutes = (int)_idleMinutes.Value,
-                StartWithWindows = _startup.Checked
+                StartWithWindows = _startup.Checked,
+                AllDay = allDay.Checked,
+                ActiveStart = start,
+                ActiveEnd = end
             };
         };
     }
+
+    private static DateTimePicker CreateTimePicker(TimeOnly time) => new()
+    {
+        Format = DateTimePickerFormat.Custom,
+        CustomFormat = "HH:mm",
+        ShowUpDown = true,
+        Value = DateOnly.FromDateTime(DateTime.Today).ToDateTime(time),
+        Width = 80
+    };
 }
