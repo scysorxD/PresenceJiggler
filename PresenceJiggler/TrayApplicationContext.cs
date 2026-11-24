@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Drawing;
 
 namespace PresenceJiggler;
@@ -9,6 +10,10 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private readonly System.Windows.Forms.Timer _timer;
     private readonly ToolStripMenuItem _toggleItem;
     private readonly ToolStripMenuItem _settingsItem;
+    private readonly ActivityHistoryStore _history = new();
+    private DateOnly? _historyPrunedFor;
+    private long _nextHistoryPruneAttemptAt;
+    private bool _historyWriteFailed;
     private long _lastAttemptAt;
     private bool _settingsOpen;
 
@@ -42,7 +47,11 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     private void OnTick(object? sender, EventArgs e)
     {
-        bool active = _settings.IsActiveAt(TimeOnly.FromDateTime(DateTime.Now));
+        var timestamp = DateTimeOffset.Now;
+        long now = Environment.TickCount64;
+        PruneHistory(ActivityHistoryStore.LocalDay(timestamp), now);
+
+        bool active = _settings.IsActiveAt(TimeOnly.FromDateTime(timestamp.DateTime));
         RefreshStatus(active);
         if (!active || _settingsOpen)
             return;
@@ -52,12 +61,39 @@ internal sealed class TrayApplicationContext : ApplicationContext
             return;
 
         // Evita reintentos constantes si el escritorio está bloqueado o rechaza SendInput.
-        long now = Environment.TickCount64;
         if (now - _lastAttemptAt < 30_000)
             return;
 
         _lastAttemptAt = now;
-        WindowsInput.NudgeCursor();
+        if (!WindowsInput.NudgeCursor())
+            return;
+
+        try
+        {
+            _history.Record(DateTimeOffset.Now);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _historyWriteFailed = true;
+            Trace.TraceWarning("No se pudo registrar el movimiento: {0}", ex.Message);
+        }
+    }
+
+    private void PruneHistory(DateOnly today, long now)
+    {
+        if (_historyPrunedFor == today || now < _nextHistoryPruneAttemptAt)
+            return;
+
+        try
+        {
+            _history.Prune(today);
+            _historyPrunedFor = today;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _nextHistoryPruneAttemptAt = now + 60_000;
+            Trace.TraceWarning("No se pudo limpiar el historial: {0}", ex.Message);
+        }
     }
 
     private void Toggle()
@@ -84,7 +120,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _settingsOpen = true;
         try
         {
-            using var form = new SettingsForm(_settings, _notifyIcon.Icon!);
+            using var form = new SettingsForm(_settings, _notifyIcon.Icon!, _history, _historyWriteFailed);
             if (form.ShowDialog() != DialogResult.OK)
                 return;
 

@@ -10,19 +10,26 @@ internal sealed class SettingsForm : Form
 
     public AppSettings Result { get; private set; }
 
-    public SettingsForm(AppSettings current, Icon icon)
+    public SettingsForm(AppSettings current, Icon icon, ActivityHistoryStore history, bool historyWriteFailed)
     {
         Result = current.Clone();
         Text = "Presence Jiggler - Configuración";
         Icon = icon;
-        Width = 435;
-        Height = 355;
+        ClientSize = new Size(720, 450);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterScreen;
         MaximizeBox = false;
         MinimizeBox = false;
         ShowInTaskbar = true;
         Font = new Font("Segoe UI", 9F);
+
+        var tabs = new TabControl { Dock = DockStyle.Fill, Padding = new Point(12, 5) };
+        var settingsTab = new TabPage("General");
+        var historyTab = new TabPage("Historial");
+        tabs.TabPages.Add(settingsTab);
+        tabs.TabPages.Add(historyTab);
+        historyTab.Controls.Add(new HistoryPanel(history, historyWriteFailed));
+        Controls.Add(tabs);
 
         var layout = new TableLayoutPanel
         {
@@ -40,7 +47,7 @@ internal sealed class SettingsForm : Form
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
-        Controls.Add(layout);
+        settingsTab.Controls.Add(layout);
 
         _enabled = new CheckBox
         {
@@ -131,6 +138,7 @@ internal sealed class SettingsForm : Form
         layout.SetColumnSpan(buttons, 2);
         AcceptButton = save;
         CancelButton = cancel;
+        tabs.SelectedIndexChanged += (_, _) => AcceptButton = tabs.SelectedTab == settingsTab ? save : null;
 
         save.Click += (_, _) =>
         {

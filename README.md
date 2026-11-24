@@ -47,7 +47,15 @@ Luego podés ejecutar `PresenceJiggler.exe` sin instalar .NET Runtime en la PC d
 - **Iniciar con Windows**: optativo, solo para el usuario actual (registro `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`).
 - Los ajustes se guardan en `%LOCALAPPDATA%\PresenceJiggler\settings.json`.
 - No requiere privilegios de administrador en un Windows sin restricciones empresariales.
-- No usa red ni recopila actividad del usuario.
+- No usa red. El historial registra localmente los movimientos automáticos de la app.
+
+## Historial
+
+En **Configuración > Historial** podés ver cuántos movimientos hizo la app hoy y en los últimos 30 días. Seleccioná un día para ver el conteo por hora y la hora local de cada movimiento.
+
+La app guarda un evento por movimiento aceptado por Windows en `%LOCALAPPDATA%\PresenceJiggler\history`. Conserva hoy y los 29 días anteriores. El historial empieza a registrarse al ejecutar esta versión.
+
+Usá **Exportar 30 días** o **Exportar día** para guardar una copia en JSON. Cada evento incluye la fecha, la hora y el desfase horario del movimiento. La copia exportada se conserva en la ubicación que elijas.
 
 ## Cómo funciona
 
